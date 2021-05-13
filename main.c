@@ -54,193 +54,153 @@ editor(struct nk_context *ctx)
     if (window = nk_begin(ctx, "Overview", window_bounds, window_flags))
     {
 		
+		float menu_h = 25;
+		
         {
             /* menubar */
-            enum menu_states {MENU_DEFAULT, MENU_WINDOWS};
-            static nk_size mprog = 60;
-            static int mslider = 10;
-            static int mcheck = nk_true;
             nk_menubar_begin(ctx);
 
             /* menu #1 */
-            nk_layout_row_begin(ctx, NK_STATIC, 25, 5);
-            nk_layout_row_push(ctx, 45);
-            if (nk_menu_begin_label(ctx, "MENU", NK_TEXT_LEFT, nk_vec2(200, 600)))
+            nk_layout_row_static(ctx, menu_h, 40, 4);
+            if (nk_menu_begin_label(ctx, "FILE", NK_TEXT_LEFT, nk_vec2(200, 200)))
             {
-                enum menu_state {MENU_NONE,MENU_FILE, MENU_EDIT,MENU_VIEW,MENU_CHART};
-                static enum menu_state menu_state = MENU_NONE;
-                enum nk_collapse_states state;
-
-                state = (menu_state == MENU_FILE) ? NK_MAXIMIZED: NK_MINIMIZED;
-                if (nk_tree_state_push(ctx, NK_TREE_TAB, "FILE", &state)) {
-                    menu_state = MENU_FILE;
-                    nk_menu_item_label(ctx, "New", NK_TEXT_LEFT);
-                    nk_menu_item_label(ctx, "Open", NK_TEXT_LEFT);
-                    nk_menu_item_label(ctx, "Save", NK_TEXT_LEFT);
-                    nk_menu_item_label(ctx, "Close", NK_TEXT_LEFT);
-                    nk_menu_item_label(ctx, "Exit", NK_TEXT_LEFT);
-                    nk_tree_pop(ctx);
-                } else menu_state = (menu_state == MENU_FILE) ? MENU_NONE: menu_state;
-
-                state = (menu_state == MENU_EDIT) ? NK_MAXIMIZED: NK_MINIMIZED;
-                if (nk_tree_state_push(ctx, NK_TREE_TAB, "EDIT", &state)) {
-                    menu_state = MENU_EDIT;
-                    nk_menu_item_label(ctx, "Copy", NK_TEXT_LEFT);
-                    nk_menu_item_label(ctx, "Delete", NK_TEXT_LEFT);
-                    nk_menu_item_label(ctx, "Cut", NK_TEXT_LEFT);
-                    nk_menu_item_label(ctx, "Paste", NK_TEXT_LEFT);
-                    nk_tree_pop(ctx);
-                } else menu_state = (menu_state == MENU_EDIT) ? MENU_NONE: menu_state;
-
-                state = (menu_state == MENU_VIEW) ? NK_MAXIMIZED: NK_MINIMIZED;
-                if (nk_tree_state_push(ctx, NK_TREE_TAB, "VIEW", &state)) {
-                    menu_state = MENU_VIEW;
-                    nk_menu_item_label(ctx, "About", NK_TEXT_LEFT);
-                    nk_menu_item_label(ctx, "Options", NK_TEXT_LEFT);
-                    nk_menu_item_label(ctx, "Customize", NK_TEXT_LEFT);
-                    nk_tree_pop(ctx);
-                } else menu_state = (menu_state == MENU_VIEW) ? MENU_NONE: menu_state;
+				nk_layout_row_dynamic(ctx, 20, 1);
+				nk_menu_item_label(ctx, "New", NK_TEXT_LEFT);
+				nk_menu_item_label(ctx, "Open", NK_TEXT_LEFT);
+				nk_menu_item_label(ctx, "Save", NK_TEXT_LEFT);
+				nk_menu_item_label(ctx, "Close", NK_TEXT_LEFT);
+				nk_menu_item_label(ctx, "Exit", NK_TEXT_LEFT);
                 nk_menu_end(ctx);
             }
-            /* menu widgets */
-            nk_layout_row_push(ctx, 70);
-            nk_progress(ctx, &mprog, 100, NK_MODIFIABLE);
-            nk_slider_int(ctx, 0, &mslider, 16, 1);
-            nk_checkbox_label(ctx, "check", &mcheck);
+            if (nk_menu_begin_label(ctx, "EDIT", NK_TEXT_LEFT, nk_vec2(200, 200)))
+            {
+				nk_layout_row_dynamic(ctx, 20, 1);
+				nk_menu_item_label(ctx, "Copy", NK_TEXT_LEFT);
+				nk_menu_item_label(ctx, "Delete", NK_TEXT_LEFT);
+				nk_menu_item_label(ctx, "Cut", NK_TEXT_LEFT);
+				nk_menu_item_label(ctx, "Paste", NK_TEXT_LEFT);
+				nk_menu_item_label(ctx, "Preferences", NK_TEXT_LEFT);
+                nk_menu_end(ctx);
+            }
+            if (nk_menu_begin_label(ctx, "PLAY", NK_TEXT_LEFT, nk_vec2(200, 200)))
+            {
+				nk_layout_row_dynamic(ctx, 20, 1);
+				nk_menu_item_label(ctx, "Play", NK_TEXT_LEFT);
+				nk_menu_item_label(ctx, "Play 2x", NK_TEXT_LEFT);
+				nk_menu_item_label(ctx, "Play 0.5x", NK_TEXT_LEFT);
+				nk_menu_item_label(ctx, "Stop", NK_TEXT_LEFT);
+                nk_menu_end(ctx);
+            }
+            if (nk_menu_begin_label(ctx, "HELP", NK_TEXT_LEFT, nk_vec2(200, 200)))
+            {
+				nk_layout_row_dynamic(ctx, 20, 1);
+				nk_menu_item_label(ctx, "About", NK_TEXT_LEFT);
+                nk_menu_end(ctx);
+            }
             nk_menubar_end(ctx);
         }
-
-        if (show_app_about)
-        {
-            /* about popup */
-            static struct nk_rect s = {20, 100, 300, 190};
-            if (nk_popup_begin(ctx, NK_POPUP_STATIC, "About", NK_WINDOW_CLOSABLE, s))
-            {
-                nk_layout_row_dynamic(ctx, 20, 1);
-                nk_label(ctx, "Nuklear", NK_TEXT_LEFT);
-                nk_label(ctx, "By Micha Mettke", NK_TEXT_LEFT);
-                nk_label(ctx, "nuklear is licensed under the public domain License.",  NK_TEXT_LEFT);
-                nk_popup_end(ctx);
-            } else show_app_about = nk_false;
-        }
 		
-		// left trays
-		nk_layout_space_begin(ctx, NK_STATIC, 0, INT_MAX); // INT_MAX for maximum rows
-		nk_layout_space_push(ctx, nk_rect(0,0,470,window_bounds.h - 43));
-		if (nk_group_begin(ctx, "LeftTray", NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR)) {
-			nk_layout_row_dynamic(ctx, window_bounds.h - 53, 3);	
+		
+		// widths
+		float wpad_w = 4;
+		float try0_w = 150;
+		float try2_w = try0_w + try0_w / 5;
+		float tool_w = 55;
+		float canv_w = sdl_width - (try0_w * 2 + try2_w + tool_w + wpad_w * 6);
+		
+		// heights
+		float hpad_h = 4;
+		float bpad_h = 10 + hpad_h;
+		float topl_h = sdl_height - bpad_h - menu_h - hpad_h;
+		
+		float tray_h = topl_h - ( 3 + (25 * 3) + (hpad_h * 4));
+		
+		float widths[] = {try0_w, try0_w, try2_w, canv_w, tool_w};
+		nk_layout_row(ctx, NK_STATIC, topl_h, sizeof(widths)/sizeof(widths[0]), widths);
+		
+		if (nk_group_begin(ctx, "Animations", NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR)) {
+			nk_layout_row_dynamic(ctx, 25, 1);
+			nk_label(ctx, "ANIMATIONS", NK_TEXT_CENTERED);
+			nk_layout_row_dynamic(ctx, 25, 5);
+			nk_button_label(ctx, "+");
+			nk_button_label(ctx, "t");
+			nk_button_label(ctx, "u");
+			nk_button_label(ctx, "d");
+			nk_button_label(ctx, "b");
 			
-			//~ nk_button_label(ctx, "ANIMATIONS");
-			
-			
-			
-			// animations start
-			//~ nk_layout_space_begin(ctx, NK_STATIC, 0, INT_MAX);
-			nk_layout_space_push(ctx, nk_rect(0,0,150,30));
-			if (nk_group_begin(ctx, "AnimTop", NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR)) {
-				nk_layout_row_dynamic(ctx, 0, 1);
-				
-				// label
-				nk_label(ctx, "ANIMATIONS", NK_TEXT_LEFT);
-				
-				// controls
-				//~ nk_layout_space_begin(ctx, NK_STATIC, 0, INT_MAX);
-				nk_layout_space_push(ctx, nk_rect(0,0,150,30));
-				if (nk_group_begin(ctx, "AnimControl", NK_WINDOW_NO_SCROLLBAR)) {
-					nk_layout_row_dynamic(ctx, 25, 5);
-					nk_button_label(ctx, "+");
-					nk_button_label(ctx, "t");
-					nk_button_label(ctx, "u");
-					nk_button_label(ctx, "d");
-					nk_button_label(ctx, "b");					
-					nk_group_end(ctx);
-				}
-				//~ nk_layout_space_end(ctx);
-				
-				// tray
-				//~ nk_layout_space_begin(ctx, NK_STATIC, 0, INT_MAX);
-				nk_layout_space_push(ctx, nk_rect(0,50,50,300));
-				if (nk_group_begin(ctx, "Animations", NK_WINDOW_BORDER)) {
-					nk_layout_row_dynamic(ctx, 25, 1);
-					nk_button_label(ctx, "#FFAA");
-					nk_button_label(ctx, "#FFBB");
-					nk_button_label(ctx, "#FFCC");
-					nk_button_label(ctx, "#FFDD");
-					nk_button_label(ctx, "#FFEE");
-					nk_button_label(ctx, "#FFAA");
-					nk_button_label(ctx, "#FFBB");
-					nk_button_label(ctx, "#FFCC");
-					nk_button_label(ctx, "#FFDD");
-					nk_button_label(ctx, "#FFEE");
-					nk_button_label(ctx, "#FFAA");
-					nk_button_label(ctx, "#FFBB");
-					nk_button_label(ctx, "#FFCC");
-					nk_button_label(ctx, "#FFDD");
-					nk_button_label(ctx, "#FFEE");
-					nk_button_label(ctx, "#FFAA");
-					nk_button_label(ctx, "#FFBB");
-					nk_button_label(ctx, "#FFCC");
-					nk_button_label(ctx, "#FFDD");
-					nk_button_label(ctx, "#FFEE");
-					nk_button_label(ctx, "#FFAA");
-					nk_button_label(ctx, "#FFBB");
-					nk_button_label(ctx, "#FFCC");
-					nk_button_label(ctx, "#FFDD");
-					nk_button_label(ctx, "#FFEE");
-					nk_group_end(ctx);
-				}
-				//~ nk_layout_space_end(ctx);
-				
+			nk_layout_row_dynamic(ctx, tray_h, 1);			
+			if (nk_group_begin(ctx, "AnimTray", NK_WINDOW_BORDER)) {
+				nk_button_label(ctx, "+");
 				nk_group_end(ctx);
 			}
-			//~ nk_layout_space_end(ctx);
-			// animations start
-			// animations end
-			nk_button_label(ctx, "FRAMES");
-			nk_button_label(ctx, "LAYERS");
 			
+			nk_layout_row_dynamic(ctx, 25, 3);
+			nk_label(ctx, "0", NK_TEXT_CENTERED);
+			nk_label(ctx, "/", NK_TEXT_CENTERED);
+			nk_label(ctx, "0", NK_TEXT_CENTERED);
 			
 			nk_group_end(ctx);
 		}
-		// left trays end
-		
-		// canvas
-		nk_layout_space_push(ctx, nk_rect(480,0,window_bounds.w - 480 - 80 ,window_bounds.h - 43));
-		if (nk_group_begin(ctx, "Canvas", NK_WINDOW_BORDER)) {
+		if (nk_group_begin(ctx, "Frames", NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR)) {
 			nk_layout_row_dynamic(ctx, 25, 1);
-			nk_button_label(ctx, "rem");
+			nk_label(ctx, "FRAMES", NK_TEXT_CENTERED);
+			nk_layout_row_dynamic(ctx, 25, 5);
+			nk_button_label(ctx, "+");
+			nk_button_label(ctx, "t");
+			nk_button_label(ctx, "u");
+			nk_button_label(ctx, "d");
+			nk_button_label(ctx, "b");
+			
+			nk_layout_row_dynamic(ctx, tray_h, 1);			
+			if (nk_group_begin(ctx, "FrameTray", NK_WINDOW_BORDER)) {
+				nk_button_label(ctx, "+");
+				nk_group_end(ctx);
+			}
+			
+			nk_layout_row_dynamic(ctx, 25, 3);
+			nk_label(ctx, "0", NK_TEXT_CENTERED);
+			nk_label(ctx, "/", NK_TEXT_CENTERED);
+			nk_label(ctx, "0", NK_TEXT_CENTERED);
 			nk_group_end(ctx);
 		}
-		// canvas end
-		
-		// right tools
-		nk_layout_space_push(ctx, nk_rect(window_bounds.w - 70,0,55,window_bounds.h - 43));
 		if (nk_group_begin(ctx, "Layers", NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR)) {
 			nk_layout_row_dynamic(ctx, 25, 1);
+			nk_label(ctx, "LAYERS", NK_TEXT_CENTERED);
+			nk_layout_row_dynamic(ctx, 25, 6);
+			nk_button_label(ctx, "+");
+			nk_button_label(ctx, "i");
+			nk_button_label(ctx, "t");
+			nk_button_label(ctx, "u");
+			nk_button_label(ctx, "d");
+			nk_button_label(ctx, "b");
+			
+			nk_layout_row_dynamic(ctx, tray_h, 1);			
+			if (nk_group_begin(ctx, "LayerTray", NK_WINDOW_BORDER)) {
+				nk_button_label(ctx, "+");
+				nk_group_end(ctx);
+			}
+			
+			nk_layout_row_dynamic(ctx, 25, 3);
+			nk_label(ctx, "0", NK_TEXT_CENTERED);
+			nk_label(ctx, "/", NK_TEXT_CENTERED);
+			nk_label(ctx, "0", NK_TEXT_CENTERED);
+			nk_group_end(ctx);
+		}
+		if (nk_group_begin(ctx, "Canvas", NK_WINDOW_BORDER)) {
+			nk_group_end(ctx);
+		}
+		if (nk_group_begin(ctx, "Tools", NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR)) {
+			nk_layout_row_dynamic(ctx, 25, 1);
+			nk_label(ctx, "tool", NK_TEXT_CENTERED);
 			nk_button_label(ctx, "add");
 			nk_button_label(ctx, "rem");
 			nk_button_label(ctx, "mov");
+			nk_label(ctx, "zoom", NK_TEXT_CENTERED);
 			nk_button_label(ctx, "zm+");
 			nk_button_label(ctx, "zm-");
 			nk_button_label(ctx, "zm1");
 			nk_group_end(ctx);
 		}
-		// right tool end
-		
-		//~ nk_layout_space_push(ctx, nk_rect(0,0,150,window_bounds.h - 43));
-		//~ if (nk_group_begin(ctx, "Animations2", NK_WINDOW_BORDER)) {
-			//~ nk_layout_row_dynamic(ctx, 25, 1);
-			//~ nk_label(ctx, "ANIMATIONS", NK_TEXT_LEFT);
-			//~ nk_button_label(ctx, "#FFAA");
-			//~ nk_button_label(ctx, "#FFBB");
-			//~ nk_button_label(ctx, "#FFCC");
-			//~ nk_button_label(ctx, "#FFDD");
-			//~ nk_button_label(ctx, "#FFEE");
-			//~ nk_group_end(ctx);
-		//~ }
-		//~ nk_layout_space_end(ctx);
-		
-		nk_layout_space_end(ctx);
 
 
     }
