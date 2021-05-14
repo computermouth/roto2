@@ -27,6 +27,91 @@
 #define WINDOW_WIDTH 1200
 #define WINDOW_HEIGHT 800
 
+#define MAX_STR_LEN 64
+
+typedef struct {
+	char name[MAX_STR_LEN];
+	int name_len;
+	nk_bool visible;
+	short x;
+	short y;
+	char color[3];
+	short point_len;
+} layer_t;
+
+typedef struct {
+	char name[MAX_STR_LEN];
+	int name_len;
+	int delay;
+	layer_t * layers;
+	short layer_len;
+} frame_t;
+
+typedef struct {
+	char name[MAX_STR_LEN];
+	int name_len;
+	nk_bool loop;
+	frame_t * frames;
+	short frame_len;
+} animation_t;
+
+typedef struct {
+	char name[MAX_STR_LEN];
+	animation_t * animations;
+	short selected;
+	short animation_len;
+} data_t;
+
+data_t data = {0};
+
+int add_animation(){
+	
+	int current = data.animation_len;
+	data.animation_len++;
+	
+	animation_t *tmp = realloc(data.animations, sizeof(animation_t) * data.animation_len);
+	if (tmp == NULL) {
+		printf("failed to realloc animations\n");
+		return -1;
+	}
+	
+	data.animations = tmp;
+	data.animations[current] = (animation_t){0};
+	
+	char * name = data.animations[current].name;
+	snprintf(name, MAX_STR_LEN, "anim_%d", data.animation_len);
+	
+	// if there's massive amounts of dupes, this will eventually explode
+	// but it'd take INT_MAX dupes
+	int tmplen = data.animation_len;
+	for(int i = 0; i < current; i++){
+		if (strcmp(name, data.animations[i].name) == 0) {
+			printf("found name collision in add_animation\n");
+			tmplen++;
+			snprintf(name, MAX_STR_LEN, "anim_%d", tmplen);
+			i = 0;
+		}
+	}
+	
+	data.animations[current].name_len = strlen(name);
+	data.selected = current;
+	
+	return 1;
+}
+
+nk_bool nk_filter_alphanumeric(const struct nk_text_edit *box, nk_rune unicode)
+{
+    NK_UNUSED(box);
+    if (
+		unicode < 48 ||
+		unicode > 57 && unicode < 65 || 
+		unicode > 90 && unicode < 95 ||
+		unicode > 95 && unicode < 97 ||
+		unicode > 122
+	) return nk_false;
+    else return nk_true;
+}
+
 static int
 editor(struct nk_context *ctx)
 {
@@ -55,6 +140,7 @@ editor(struct nk_context *ctx)
     {
 		
 		float menu_h = 25;
+		float default_h = 25;
 		
         {
             /* menubar */
@@ -64,7 +150,7 @@ editor(struct nk_context *ctx)
             nk_layout_row_static(ctx, menu_h, 40, 4);
             if (nk_menu_begin_label(ctx, "FILE", NK_TEXT_LEFT, nk_vec2(200, 200)))
             {
-				nk_layout_row_dynamic(ctx, 20, 1);
+				nk_layout_row_dynamic(ctx, default_h, 1);
 				nk_menu_item_label(ctx, "New", NK_TEXT_LEFT);
 				nk_menu_item_label(ctx, "Open", NK_TEXT_LEFT);
 				nk_menu_item_label(ctx, "Save", NK_TEXT_LEFT);
@@ -74,7 +160,7 @@ editor(struct nk_context *ctx)
             }
             if (nk_menu_begin_label(ctx, "EDIT", NK_TEXT_LEFT, nk_vec2(200, 200)))
             {
-				nk_layout_row_dynamic(ctx, 20, 1);
+				nk_layout_row_dynamic(ctx, default_h, 1);
 				nk_menu_item_label(ctx, "Copy", NK_TEXT_LEFT);
 				nk_menu_item_label(ctx, "Delete", NK_TEXT_LEFT);
 				nk_menu_item_label(ctx, "Cut", NK_TEXT_LEFT);
@@ -84,7 +170,7 @@ editor(struct nk_context *ctx)
             }
             if (nk_menu_begin_label(ctx, "PLAY", NK_TEXT_LEFT, nk_vec2(200, 200)))
             {
-				nk_layout_row_dynamic(ctx, 20, 1);
+				nk_layout_row_dynamic(ctx, default_h, 1);
 				nk_menu_item_label(ctx, "Play", NK_TEXT_LEFT);
 				nk_menu_item_label(ctx, "Play 2x", NK_TEXT_LEFT);
 				nk_menu_item_label(ctx, "Play 0.5x", NK_TEXT_LEFT);
@@ -93,7 +179,7 @@ editor(struct nk_context *ctx)
             }
             if (nk_menu_begin_label(ctx, "HELP", NK_TEXT_LEFT, nk_vec2(200, 200)))
             {
-				nk_layout_row_dynamic(ctx, 20, 1);
+				nk_layout_row_dynamic(ctx, default_h, 1);
 				nk_menu_item_label(ctx, "About", NK_TEXT_LEFT);
                 nk_menu_end(ctx);
             }
@@ -113,16 +199,20 @@ editor(struct nk_context *ctx)
 		float bpad_h = 10 + hpad_h;
 		float topl_h = sdl_height - bpad_h - menu_h - hpad_h;
 		
-		float tray_h = topl_h - ( 3 + (25 * 3) + (hpad_h * 4));
+		float tray_h = topl_h - ( 3 + (default_h * 3) + (hpad_h * 4));
 		
 		float widths[] = {try0_w, try0_w, try2_w, canv_w, tool_w};
 		nk_layout_row(ctx, NK_STATIC, topl_h, sizeof(widths)/sizeof(widths[0]), widths);
 		
 		if (nk_group_begin(ctx, "Animations", NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR)) {
-			nk_layout_row_dynamic(ctx, 25, 1);
+			nk_layout_row_dynamic(ctx, default_h, 1);
 			nk_label(ctx, "ANIMATIONS", NK_TEXT_CENTERED);
-			nk_layout_row_dynamic(ctx, 25, 5);
-			nk_button_label(ctx, "+");
+			nk_layout_row_dynamic(ctx, default_h, 5);
+			
+			int just_added = 0;
+			if (nk_button_label(ctx, "+")) {
+				just_added = add_animation();
+			}
 			nk_button_label(ctx, "t");
 			nk_button_label(ctx, "u");
 			nk_button_label(ctx, "d");
@@ -130,21 +220,57 @@ editor(struct nk_context *ctx)
 			
 			nk_layout_row_dynamic(ctx, tray_h, 1);			
 			if (nk_group_begin(ctx, "AnimTray", NK_WINDOW_BORDER)) {
-				nk_button_label(ctx, "+");
+				nk_layout_row_dynamic(ctx, default_h * 2 + hpad_h * 3 + 2, 1);
+				
+				for(int i = 0; i < data.animation_len; i++){
+					
+					//~ struct nk_style *s = &ctx->style;
+					//~ nk_style_push_color(ctx, &s->window.background, nk_rgba(1, 1, 1, 1));
+					//~ nk_style_push_style_item(ctx, &s->window.fixed_background, nk_style_item_color(nk_rgba(1, 1, 1, 1)));
+					
+					struct nk_color old_color = ctx->style.window.group_border_color;
+					if ( i == data.selected )
+						ctx->style.window.group_border_color = nk_rgba(255,255,255,255);
+					
+					if (nk_group_begin(ctx, data.animations[i].name, NK_WINDOW_BORDER| NK_WINDOW_NO_SCROLLBAR)) {
+
+						nk_layout_row_dynamic(ctx, default_h, 1);
+						nk_flags state = nk_edit_string(ctx, NK_EDIT_SIMPLE, data.animations[i].name, &data.animations[i].name_len, MAX_STR_LEN, nk_filter_alphanumeric);
+						if ( state & NK_EDIT_ACTIVATED && !just_added )
+							data.selected = i;
+						
+						nk_layout_row_dynamic(ctx, default_h, 2);
+						nk_button_label(ctx, "->");
+						nk_button_label(ctx, "X");
+						nk_group_end(ctx);
+					}
+					
+					ctx->style.window.group_border_color = old_color;
+					//~ nk_style_pop_color(ctx);
+					//~ nk_style_pop_style_item(ctx);
+					
+				}
+				
+				
 				nk_group_end(ctx);
 			}
 			
-			nk_layout_row_dynamic(ctx, 25, 3);
-			nk_label(ctx, "0", NK_TEXT_CENTERED);
+			nk_layout_row_dynamic(ctx, default_h, 3);
+			
+			char position[MAX_STR_LEN] = {'0', 0};
+			if (data.animation_len > 0)
+				snprintf(position, MAX_STR_LEN, "%d", data.selected + 1);
+			nk_label(ctx, position, NK_TEXT_CENTERED);
 			nk_label(ctx, "/", NK_TEXT_CENTERED);
-			nk_label(ctx, "0", NK_TEXT_CENTERED);
+			snprintf(position, MAX_STR_LEN, "%d", data.animation_len);
+			nk_label(ctx, position, NK_TEXT_CENTERED);
 			
 			nk_group_end(ctx);
 		}
 		if (nk_group_begin(ctx, "Frames", NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR)) {
-			nk_layout_row_dynamic(ctx, 25, 1);
+			nk_layout_row_dynamic(ctx, default_h, 1);
 			nk_label(ctx, "FRAMES", NK_TEXT_CENTERED);
-			nk_layout_row_dynamic(ctx, 25, 5);
+			nk_layout_row_dynamic(ctx, default_h, 5);
 			nk_button_label(ctx, "+");
 			nk_button_label(ctx, "t");
 			nk_button_label(ctx, "u");
@@ -157,16 +283,16 @@ editor(struct nk_context *ctx)
 				nk_group_end(ctx);
 			}
 			
-			nk_layout_row_dynamic(ctx, 25, 3);
+			nk_layout_row_dynamic(ctx, default_h, 3);
 			nk_label(ctx, "0", NK_TEXT_CENTERED);
 			nk_label(ctx, "/", NK_TEXT_CENTERED);
 			nk_label(ctx, "0", NK_TEXT_CENTERED);
 			nk_group_end(ctx);
 		}
 		if (nk_group_begin(ctx, "Layers", NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR)) {
-			nk_layout_row_dynamic(ctx, 25, 1);
+			nk_layout_row_dynamic(ctx, default_h, 1);
 			nk_label(ctx, "LAYERS", NK_TEXT_CENTERED);
-			nk_layout_row_dynamic(ctx, 25, 6);
+			nk_layout_row_dynamic(ctx, default_h, 6);
 			nk_button_label(ctx, "+");
 			nk_button_label(ctx, "i");
 			nk_button_label(ctx, "t");
@@ -180,7 +306,7 @@ editor(struct nk_context *ctx)
 				nk_group_end(ctx);
 			}
 			
-			nk_layout_row_dynamic(ctx, 25, 3);
+			nk_layout_row_dynamic(ctx, default_h, 3);
 			nk_label(ctx, "0", NK_TEXT_CENTERED);
 			nk_label(ctx, "/", NK_TEXT_CENTERED);
 			nk_label(ctx, "0", NK_TEXT_CENTERED);
@@ -190,12 +316,25 @@ editor(struct nk_context *ctx)
 			nk_group_end(ctx);
 		}
 		if (nk_group_begin(ctx, "Tools", NK_WINDOW_BORDER | NK_WINDOW_NO_SCROLLBAR)) {
-			nk_layout_row_dynamic(ctx, 25, 1);
-			nk_label(ctx, "tool", NK_TEXT_CENTERED);
-			nk_button_label(ctx, "add");
-			nk_button_label(ctx, "rem");
-			nk_button_label(ctx, "mov");
-			nk_label(ctx, "zoom", NK_TEXT_CENTERED);
+			nk_layout_row_dynamic(ctx, default_h, 1);
+			nk_label(ctx, "TOOL", NK_TEXT_CENTERED);
+			static int selected[3] = {nk_true, nk_false, nk_false};
+			if (nk_selectable_label(ctx, "add", NK_TEXT_CENTERED, &selected[0]) ) {
+				selected[1] = selected[2] = nk_false;
+				if(selected[0] == nk_false)
+					selected[0] = nk_true;
+			}
+			if (nk_selectable_label(ctx, "mov", NK_TEXT_CENTERED, &selected[1]) ) {
+				selected[0] = selected[2] = nk_false;
+				if(selected[1] == nk_false)
+					selected[1] = nk_true;
+			}
+			if (nk_selectable_label(ctx, "rem", NK_TEXT_CENTERED, &selected[2]) ) {
+				selected[0] = selected[1] = nk_false;
+				if(selected[2] == nk_false)
+					selected[2] = nk_true;
+			}
+			nk_label(ctx, "ZOOM", NK_TEXT_CENTERED);
 			nk_button_label(ctx, "zm+");
 			nk_button_label(ctx, "zm-");
 			nk_button_label(ctx, "zm1");
@@ -242,7 +381,7 @@ main(int argc, char *argv[])
 		nk_sdl_font_stash_end();
     }
 
-    bg.r = 0.7f, bg.g = 0.0f, bg.b = 0.176f, bg.a = 1.0f;
+    bg.r = 0.176f, bg.g = 0.176f, bg.b = 0.176f, bg.a = 1.0f;
     while (running)
     {
         /* Input */
