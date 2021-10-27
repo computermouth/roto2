@@ -99,6 +99,46 @@ int add_animation(){
 	return 1;
 }
 
+int del_animation(){
+	
+	int current = data.selected;
+	
+	frame_t * tmp_frame = data.animations[data.selected].frames;
+	if (data.animations[data.selected].frames != NULL) {
+		{
+			// free all layers
+		}
+		// free all frames
+	}
+	
+	for(int i = data.selected; i < data.animation_len - 1; i++) {
+		data.animations[i] = data.animations[i+1];
+	}
+	
+	data.animation_len--;
+	
+	if (data.animation_len > 0){
+		animation_t *tmp = realloc(data.animations, sizeof(animation_t) * data.animation_len);
+		if (tmp == NULL) {
+			printf("failed to realloc animations\n");
+			return -1;
+		}
+		
+		data.animations = tmp;
+		
+		if (data.selected + 1 > data.animation_len)
+			data.selected = data.animation_len - 1;
+	} else {
+	
+		free(data.animations);
+		data.animations = NULL;
+		data.selected = -1;
+		data.animation_len = 0;
+	}
+	
+	return 0;
+}
+
 nk_bool nk_filter_alphanumeric(const struct nk_text_edit *box, nk_rune unicode)
 {
     NK_UNUSED(box);
@@ -241,7 +281,10 @@ editor(struct nk_context *ctx)
 						
 						nk_layout_row_dynamic(ctx, default_h, 2);
 						nk_button_label(ctx, "->");
-						nk_button_label(ctx, "X");
+						if (nk_button_label(ctx, "X")) {
+							data.selected = i;
+							del_animation();
+						}
 						nk_group_end(ctx);
 					}
 					

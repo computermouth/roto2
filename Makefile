@@ -23,3 +23,7 @@ $(BIN):
 	@mkdir -p bin
 	rm -f bin/$(BIN) $(OBJS)
 	$(CC) $(SRC) $(CFLAGS) -o bin/$(BIN) $(LIBS)
+
+memtest:
+	valgrind --track-origins=yes --leak-check=yes\
+ ./bin/$(BIN)

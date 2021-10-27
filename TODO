@@ -1,0 +1,15 @@
+==5014== Invalid read of size 4
+==5014==    at 0x135D24: nk_group_scrolled_offset_begin (in /home/computermouth/projects/roto2/bin/demo)
+==5014==    by 0x10B6BF: main (in /home/computermouth/projects/roto2/bin/demo)
+==5014==  Address 0x0 is not stack'd, malloc'd or (recently) free'd
+==5014== 
+==5014== 
+==5014== Process terminating with default action of signal 11 (SIGSEGV)
+==5014==  Access not within mapped region at address 0x0
+==5014==    at 0x135D24: nk_group_scrolled_offset_begin (in /home/computermouth/projects/roto2/bin/demo)
+==5014==    by 0x10B6BF: main (in /home/computermouth/projects/roto2/bin/demo)
+==5014==  If you believe this happened as a result of a stack
+==5014==  overflow in your program's main thread (unlikely but
+==5014==  possible), you can try to increase the size of the
+==5014==  main thread stack using the --main-stacksize= flag.
+==5014==  The main thread stack size used in this run was 8388608.
